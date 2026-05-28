@@ -52,6 +52,12 @@ pnpm install
 pnpm dev
 ```
 
+For local Playwright e2e runs, install Chromium once:
+
+```bash
+pnpm exec playwright install chromium
+```
+
 ## Commands
 
 ```bash
