@@ -1,0 +1,108 @@
+@import "@fontsource-variable/geist";
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: "Geist Variable", "Aptos", sans-serif;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+:root {
+  color-scheme: light;
+  --radius: 0.9rem;
+  --background: oklch(0.98 0.012 91);
+  --foreground: oklch(0.19 0.032 92);
+  --card: oklch(0.996 0.006 96);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.996 0.006 96);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.45 0.13 150);
+  --primary-foreground: oklch(0.98 0.02 142);
+  --secondary: oklch(0.93 0.039 94);
+  --secondary-foreground: oklch(0.25 0.048 101);
+  --muted: oklch(0.93 0.025 88);
+  --muted-foreground: oklch(0.48 0.04 95);
+  --accent: oklch(0.91 0.06 132);
+  --accent-foreground: oklch(0.24 0.058 132);
+  --destructive: oklch(0.58 0.21 28);
+  --border: oklch(0.86 0.03 88);
+  --input: oklch(0.88 0.026 88);
+  --ring: oklch(0.59 0.12 150);
+}
+
+.dark {
+  color-scheme: dark;
+  --background: oklch(0.16 0.028 95);
+  --foreground: oklch(0.94 0.018 91);
+  --card: oklch(0.2 0.03 95);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.2 0.03 95);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.73 0.13 148);
+  --primary-foreground: oklch(0.14 0.032 145);
+  --secondary: oklch(0.26 0.035 96);
+  --secondary-foreground: oklch(0.94 0.018 91);
+  --muted: oklch(0.25 0.03 95);
+  --muted-foreground: oklch(0.72 0.028 92);
+  --accent: oklch(0.31 0.06 130);
+  --accent-foreground: oklch(0.93 0.035 125);
+  --destructive: oklch(0.67 0.19 26);
+  --border: oklch(0.31 0.03 95);
+  --input: oklch(0.29 0.032 95);
+  --ring: oklch(0.72 0.13 148);
+}
+
+* {
+  @apply border-border outline-ring/50;
+}
+
+html {
+  min-height: 100%;
+}
+
+body {
+  @apply min-h-svh bg-background font-sans text-foreground antialiased;
+}
+
+#root {
+  min-height: 100svh;
+}
+
+::selection {
+  background: color-mix(in oklch, var(--primary) 22%, transparent);
+}
+
+.app-atmosphere {
+  background-image:
+    radial-gradient(circle at top left, color-mix(in oklch, var(--primary) 18%, transparent), transparent 34rem),
+    radial-gradient(circle at 85% 15%, color-mix(in oklch, var(--accent) 45%, transparent), transparent 28rem),
+    linear-gradient(135deg, color-mix(in oklch, var(--muted) 72%, transparent), transparent 38%);
+}
+
+.card-hairline {
+  box-shadow: 0 1px 0 color-mix(in oklch, var(--foreground) 5%, transparent),
+    0 24px 80px color-mix(in oklch, var(--foreground) 6%, transparent);
+}
