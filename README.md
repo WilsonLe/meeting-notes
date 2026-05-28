@@ -10,7 +10,7 @@ This branch keeps the app local-only while adding the first usable meeting-note 
 - Browser-local IndexedDB repository for local workspaces, selected workspace metadata, draft notes, and raw recording blobs.
 - Minimal path routing for `/` and `/<meeting-id>/edit` without adding a router dependency.
 - Meeting list UI with search/filter controls, local workspace switching, and draft creation.
-- Minimal capture page using `getDisplayMedia({ video: true, audio: true })` plus `MediaRecorder` for browser-tab WebM capture.
+- Minimal capture page using display capture, best-effort microphone capture, `MediaRecorder`, and local playback/download for saved WebM recordings.
 - Domain types and mock fixtures for Meeting Note, Raw Recording, Transcript, Summary, and Processing Runs.
 
 Not included yet: OpenAI-compatible API calls, real import/export, or background processing.
@@ -27,12 +27,13 @@ Recording is allowed without a verified provider. Saved notes land in `recorded`
 
 ## Recording Requirements
 
-Recording currently captures browser-tab media only:
+Recording currently captures local browser media only:
 
-- Browser tab video.
-- Tab audio.
+- Browser tab, window, or desktop video from `getDisplayMedia`.
+- Shared tab/system audio when the selected display source provides it.
+- Microphone audio as a best-effort `getUserMedia` track; denial or device failure does not block display recording.
 
-If tab video, tab audio, `getDisplayMedia`, or `MediaRecorder` is missing, the app fails clearly before saving. Desktop Chrome/Edge are the first supported browsers.
+If display video, `getDisplayMedia`, or `MediaRecorder` is missing, the app fails clearly before saving. Saved recordings can be played and downloaded from the meeting note UI. Desktop Chrome/Edge are the first supported browsers.
 
 ## Processing Rules
 
@@ -56,6 +57,8 @@ pnpm dev
 ```bash
 pnpm lint
 pnpm typecheck
+pnpm test
+pnpm test:e2e
 pnpm build
 pnpm preview
 pnpm format

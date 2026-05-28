@@ -1,4 +1,4 @@
-import type { MeetingNote } from "@/lib/domain"
+import type { MeetingNote, RecordingSource } from "@/lib/domain"
 
 const DATABASE_NAME = "meeting-notes-local"
 const DATABASE_VERSION = 1
@@ -57,6 +57,17 @@ export type SaveMeetingNoteRecordingInput = {
   durationSeconds: number
   mimeType: string
   chunkCount: number
+  capturedSources: RecordingSource[]
+}
+
+export type StoredMeetingNoteRecording = {
+  id: string
+  meetingId: string
+  blob: Blob
+  mimeType: string
+  sizeBytes: number
+  durationSeconds: number
+  capturedAt: string
 }
 
 export async function loadLocalWorkspaceState(): Promise<LocalWorkspaceState> {
@@ -194,7 +205,7 @@ export async function saveMeetingNoteRecording(
         mimeType: recording.mimeType,
         durationSeconds: input.durationSeconds,
         sizeBytes: input.blob.size,
-        capturedSources: ["browser-tab", "tab-audio"],
+        capturedSources: input.capturedSources,
       },
     }
 
@@ -217,6 +228,32 @@ export async function saveMeetingNoteRecording(
   })
 }
 
+export async function loadMeetingNoteRecording(
+  recordingId: string
+): Promise<StoredMeetingNoteRecording | null> {
+  return withDatabase(async (database) => {
+    const recording = await getRecord<RecordingRecord>(
+      database,
+      "recordings",
+      recordingId
+    )
+
+    if (!recording) {
+      return null
+    }
+
+    return {
+      id: recording.id,
+      meetingId: recording.meetingId,
+      blob: recording.blob,
+      mimeType: recording.mimeType,
+      sizeBytes: recording.sizeBytes,
+      durationSeconds: recording.durationSeconds,
+      capturedAt: recording.capturedAt,
+    }
+  })
+}
+
 async function withDatabase<T>(
   callback: (database: IDBDatabase) => Promise<T>
 ): Promise<T> {
@@ -232,7 +269,9 @@ async function withDatabase<T>(
 
 function openDatabase(): Promise<IDBDatabase> {
   if (!globalThis.indexedDB) {
-    return Promise.reject(new Error("IndexedDB is not available in this browser"))
+    return Promise.reject(
+      new Error("IndexedDB is not available in this browser")
+    )
   }
 
   return new Promise((resolve, reject) => {
@@ -358,7 +397,11 @@ async function getValidSelectedWorkspaceId(
     return selectedWorkspaceId
   }
 
-  await setMetaValue(database, SELECTED_WORKSPACE_META_KEY, DEFAULT_WORKSPACE_ID)
+  await setMetaValue(
+    database,
+    SELECTED_WORKSPACE_META_KEY,
+    DEFAULT_WORKSPACE_ID
+  )
   return DEFAULT_WORKSPACE_ID
 }
 
@@ -369,9 +412,9 @@ async function listMeetingNotesForWorkspace(
   const transaction = database.transaction("meetingNotes", "readonly")
   const store = transaction.objectStore("meetingNotes")
   const index = store.index("workspaceId")
-  const request = index.getAll(
-    IDBKeyRange.only(workspaceId)
-  ) as IDBRequest<MeetingNoteRecord[]>
+  const request = index.getAll(IDBKeyRange.only(workspaceId)) as IDBRequest<
+    MeetingNoteRecord[]
+  >
   const records = await requestToPromise(request)
 
   await waitForTransaction(transaction)

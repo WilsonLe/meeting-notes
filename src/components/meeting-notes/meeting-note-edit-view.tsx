@@ -1,14 +1,33 @@
 import { useEffect, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
+import { RecordingPlayer } from "@/components/meeting-notes/recording-player"
 import { saveMeetingNoteRecording } from "@/lib/local-workspace-repository"
-import type { MeetingNote } from "@/lib/domain"
+import type { MeetingNote, RecordingSource } from "@/lib/domain"
 
 type CaptureState = "idle" | "requesting" | "recording" | "saving"
 
 type MeetingNoteEditViewProps = {
   note: MeetingNote | null
   onRecordingSaved: (note: MeetingNote) => void
+}
+
+type CaptureResources = {
+  stream: MediaStream
+  sourceStreams: MediaStream[]
+  audioContext: AudioContext | null
+  audioSources: MediaStreamAudioSourceNode[]
+  audioDestination: MediaStreamAudioDestinationNode | null
+}
+
+type PreparedCapture = CaptureResources & {
+  capturedSources: RecordingSource[]
+  warningMessage: string | null
+}
+
+type MicrophoneCaptureResult = {
+  stream: MediaStream | null
+  warningMessage: string | null
 }
 
 const preferredMimeTypes = [
@@ -23,9 +42,12 @@ export function MeetingNoteEditView({
 }: MeetingNoteEditViewProps) {
   const [captureState, setCaptureState] = useState<CaptureState>("idle")
   const [message, setMessage] = useState<string | null>(null)
+  const [previewStream, setPreviewStream] = useState<MediaStream | null>(null)
+  const previewVideoRef = useRef<HTMLVideoElement | null>(null)
   const recorderRef = useRef<MediaRecorder | null>(null)
-  const streamRef = useRef<MediaStream | null>(null)
+  const captureResourcesRef = useRef<CaptureResources | null>(null)
   const chunksRef = useRef<Blob[]>([])
+  const capturedSourcesRef = useRef<RecordingSource[]>([])
   const startedAtRef = useRef(0)
   const isCaptureRequestingRef = useRef(false)
   const isMountedRef = useRef(true)
@@ -49,9 +71,16 @@ export function MeetingNoteEditView({
         recorder.stop()
       }
 
-      stopStream(streamRef.current)
+      cleanupCaptureResources(captureResourcesRef.current)
+      captureResourcesRef.current = null
     }
   }, [])
+
+  useEffect(() => {
+    if (previewVideoRef.current) {
+      previewVideoRef.current.srcObject = previewStream
+    }
+  }, [previewStream])
 
   const handleCaptureClick = () => {
     if (isRequesting || isSaving) {
@@ -70,7 +99,7 @@ export function MeetingNoteEditView({
     if (
       isCaptureRequestingRef.current ||
       recorderRef.current ||
-      streamRef.current
+      captureResourcesRef.current
     ) {
       return
     }
@@ -81,7 +110,7 @@ export function MeetingNoteEditView({
     }
 
     if (!navigator.mediaDevices?.getDisplayMedia) {
-      setMessage("Browser does not support tab capture.")
+      setMessage("Browser does not support display capture.")
       return
     }
 
@@ -93,23 +122,28 @@ export function MeetingNoteEditView({
     isCaptureRequestingRef.current = true
     setCaptureState("requesting")
     setMessage(null)
-    let stream: MediaStream | null = null
+    setPreviewStream(null)
+    let captureResources: CaptureResources | null = null
 
     try {
-      stream = await navigator.mediaDevices.getDisplayMedia({
+      const displayStream = await navigator.mediaDevices.getDisplayMedia({
         video: true,
         audio: true,
       })
+      const preparedCapture = await prepareCapture(displayStream)
+      const validationMessage = validateDisplayCaptureStream(
+        preparedCapture.stream
+      )
+
+      captureResources = preparedCapture
 
       if (!isMountedRef.current) {
-        stopStream(stream)
+        cleanupCaptureResources(preparedCapture)
         return
       }
 
-      const validationMessage = validateTabCaptureStream(stream)
-
       if (validationMessage) {
-        stopStream(stream)
+        cleanupCaptureResources(preparedCapture)
         setCaptureState("idle")
         setMessage(validationMessage)
         return
@@ -117,14 +151,15 @@ export function MeetingNoteEditView({
 
       const mimeType = getSupportedMimeType()
       const recorder = new MediaRecorder(
-        stream,
+        preparedCapture.stream,
         mimeType ? { mimeType } : undefined
       )
 
       chunksRef.current = []
+      capturedSourcesRef.current = preparedCapture.capturedSources
       startedAtRef.current = getCurrentTimestamp()
       recorderRef.current = recorder
-      streamRef.current = stream
+      captureResourcesRef.current = preparedCapture
 
       recorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
@@ -135,19 +170,21 @@ export function MeetingNoteEditView({
         void finishCapture(note)
       }
       recorder.onerror = () => {
-        stopStream(stream)
+        cleanupCaptureResources(captureResourcesRef.current)
         recorderRef.current = null
-        streamRef.current = null
+        captureResourcesRef.current = null
         chunksRef.current = []
+        capturedSourcesRef.current = []
         startedAtRef.current = 0
 
         if (isMountedRef.current) {
+          setPreviewStream(null)
           setCaptureState("idle")
           setMessage("Capture failed before recording could be saved.")
         }
       }
 
-      for (const track of stream.getTracks()) {
+      for (const track of preparedCapture.stream.getVideoTracks()) {
         track.addEventListener("ended", () => {
           if (!isMountedRef.current) {
             return
@@ -162,15 +199,19 @@ export function MeetingNoteEditView({
       }
 
       recorder.start(1000)
+      setPreviewStream(preparedCapture.stream)
       setCaptureState("recording")
+      setMessage(preparedCapture.warningMessage)
     } catch (error) {
-      stopStream(stream)
+      cleanupCaptureResources(captureResources)
       recorderRef.current = null
-      streamRef.current = null
+      captureResourcesRef.current = null
       chunksRef.current = []
+      capturedSourcesRef.current = []
       startedAtRef.current = 0
 
       if (isMountedRef.current) {
+        setPreviewStream(null)
         setCaptureState("idle")
         setMessage(getCaptureErrorMessage(error))
       }
@@ -194,19 +235,22 @@ export function MeetingNoteEditView({
   const finishCapture = async (capturedNote: MeetingNote) => {
     const chunks = chunksRef.current
     const recorder = recorderRef.current
-    const stream = streamRef.current
+    const captureResources = captureResourcesRef.current
     const mimeType = recorder?.mimeType || chunks[0]?.type || "video/webm"
     const durationSeconds = Math.max(
       1,
       Math.round((getCurrentTimestamp() - startedAtRef.current) / 1000)
     )
     const blob = new Blob(chunks, { type: mimeType })
+    const capturedSources = capturedSourcesRef.current
 
-    stopStream(stream)
+    cleanupCaptureResources(captureResources)
     recorderRef.current = null
-    streamRef.current = null
+    captureResourcesRef.current = null
     chunksRef.current = []
+    capturedSourcesRef.current = []
     startedAtRef.current = 0
+    setPreviewStream(null)
 
     if (blob.size === 0) {
       setCaptureState("idle")
@@ -222,6 +266,7 @@ export function MeetingNoteEditView({
         durationSeconds,
         mimeType,
         chunkCount: chunks.length,
+        capturedSources,
       })
       onRecordingSaved(updatedNote)
       setCaptureState("idle")
@@ -233,7 +278,7 @@ export function MeetingNoteEditView({
   }
 
   return (
-    <section className="flex min-h-[calc(100svh-8rem)] flex-col items-center justify-center gap-3 p-4">
+    <section className="flex min-h-[calc(100svh-8rem)] flex-col items-center justify-center gap-4 p-4">
       <Button
         type="button"
         size="lg"
@@ -248,11 +293,24 @@ export function MeetingNoteEditView({
               ? "Stop Capture"
               : "Capture"}
       </Button>
+      {previewStream && (
+        <div className="flex w-full max-w-3xl flex-col gap-2">
+          <p className="text-sm font-medium">Live capture preview</p>
+          <video
+            ref={previewVideoRef}
+            autoPlay
+            muted
+            playsInline
+            className="aspect-video w-full rounded-lg border bg-black"
+          />
+        </div>
+      )}
       {(message || !note) && (
-        <p className="max-w-md text-center text-sm text-muted-foreground">
+        <p className="max-w-2xl text-center text-sm text-muted-foreground">
           {message ?? "Meeting note not found in selected workspace."}
         </p>
       )}
+      {note && <RecordingPlayer note={note} />}
     </section>
   )
 }
@@ -261,31 +319,184 @@ function getCurrentTimestamp() {
   return Date.now()
 }
 
-function validateTabCaptureStream(stream: MediaStream) {
-  const videoTrack = stream.getVideoTracks()[0]
-  const settings = videoTrack?.getSettings() as MediaTrackSettings & {
-    displaySurface?: string
+async function prepareCapture(
+  displayStream: MediaStream
+): Promise<PreparedCapture> {
+  const microphoneCapture = await requestMicrophoneCapture()
+
+  try {
+    const displayAudioTracks = displayStream.getAudioTracks()
+    const microphoneAudioTracks =
+      microphoneCapture.stream?.getAudioTracks() ?? []
+    const recordingResources = await createRecordingResources(
+      displayStream,
+      microphoneCapture.stream
+    )
+    const displaySource = getDisplayRecordingSource(displayStream)
+    const capturedSources = uniqueRecordingSources([
+      displaySource,
+      ...getDisplayAudioSources(displaySource, displayAudioTracks.length),
+      ...(microphoneAudioTracks.length > 0 ? ["microphone" as const] : []),
+    ])
+    const warnings = [
+      displayAudioTracks.length === 0
+        ? "System or tab audio was not shared; continuing without it."
+        : null,
+      microphoneCapture.warningMessage,
+    ].filter((warning): warning is string => Boolean(warning))
+
+    return {
+      ...recordingResources,
+      sourceStreams: [displayStream, microphoneCapture.stream].filter(
+        (stream): stream is MediaStream => Boolean(stream)
+      ),
+      capturedSources,
+      warningMessage: warnings.length > 0 ? warnings.join(" ") : null,
+    }
+  } catch (error) {
+    stopStream(displayStream)
+    stopStream(microphoneCapture.stream)
+    throw error
+  }
+}
+
+async function createRecordingResources(
+  displayStream: MediaStream,
+  microphoneStream: MediaStream | null
+): Promise<Omit<CaptureResources, "sourceStreams">> {
+  const audioTracks = [
+    ...displayStream.getAudioTracks(),
+    ...(microphoneStream?.getAudioTracks() ?? []),
+  ]
+
+  if (audioTracks.length === 0) {
+    return {
+      stream: new MediaStream(displayStream.getVideoTracks()),
+      audioContext: null,
+      audioSources: [],
+      audioDestination: null,
+    }
   }
 
-  if (!videoTrack) {
-    return "Select a browser tab with video enabled."
+  const audioContext = new AudioContext()
+  const audioDestination = audioContext.createMediaStreamDestination()
+  const audioSources = audioTracks.map((track) => {
+    const source = audioContext.createMediaStreamSource(
+      new MediaStream([track])
+    )
+
+    source.connect(audioDestination)
+
+    return source
+  })
+
+  if (audioContext.state === "suspended") {
+    await audioContext.resume()
   }
 
-  if (settings.displaySurface && settings.displaySurface !== "browser") {
-    return "Select a browser tab, not a window or screen."
+  return {
+    stream: new MediaStream([
+      ...displayStream.getVideoTracks(),
+      ...audioDestination.stream.getAudioTracks(),
+    ]),
+    audioContext,
+    audioSources,
+    audioDestination,
+  }
+}
+
+async function requestMicrophoneCapture(): Promise<MicrophoneCaptureResult> {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    return {
+      stream: null,
+      warningMessage:
+        "Microphone capture is not supported; continuing without mic audio.",
+    }
   }
 
-  if (stream.getAudioTracks().length === 0) {
-    return "Select a browser tab with audio enabled."
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+
+    if (stream.getAudioTracks().length === 0) {
+      stopStream(stream)
+      return {
+        stream: null,
+        warningMessage:
+          "Microphone did not provide audio; continuing without mic audio.",
+      }
+    }
+
+    return { stream, warningMessage: null }
+  } catch {
+    return {
+      stream: null,
+      warningMessage: "Microphone unavailable; continuing without mic audio.",
+    }
+  }
+}
+
+function validateDisplayCaptureStream(stream: MediaStream) {
+  if (stream.getVideoTracks().length === 0) {
+    return "Select a browser tab, window, or screen with video enabled."
   }
 
   return null
+}
+
+function getDisplayRecordingSource(stream: MediaStream): RecordingSource {
+  const settings = stream.getVideoTracks()[0]?.getSettings() as
+    | (MediaTrackSettings & { displaySurface?: string })
+    | undefined
+
+  switch (settings?.displaySurface) {
+    case "browser":
+      return "browser-tab"
+    case "window":
+      return "window"
+    case "monitor":
+      return "desktop"
+    default:
+      return "display"
+  }
+}
+
+function getDisplayAudioSources(
+  displaySource: RecordingSource,
+  audioTrackCount: number
+): RecordingSource[] {
+  if (audioTrackCount === 0) {
+    return []
+  }
+
+  return [displaySource === "browser-tab" ? "tab-audio" : "system-audio"]
+}
+
+function uniqueRecordingSources(sources: RecordingSource[]) {
+  return Array.from(new Set(sources))
 }
 
 function getSupportedMimeType() {
   return preferredMimeTypes.find((mimeType) =>
     MediaRecorder.isTypeSupported(mimeType)
   )
+}
+
+function cleanupCaptureResources(resources: CaptureResources | null) {
+  stopStream(resources?.stream ?? null)
+
+  for (const source of resources?.audioSources ?? []) {
+    source.disconnect()
+  }
+
+  resources?.audioDestination?.disconnect()
+
+  if (resources?.audioContext && resources.audioContext.state !== "closed") {
+    void resources.audioContext.close().catch(() => undefined)
+  }
+
+  for (const stream of resources?.sourceStreams ?? []) {
+    stopStream(stream)
+  }
 }
 
 function stopStream(stream: MediaStream | null) {
@@ -295,8 +506,14 @@ function stopStream(stream: MediaStream | null) {
 }
 
 function getCaptureErrorMessage(error: unknown) {
-  if (error instanceof DOMException && error.name === "NotAllowedError") {
-    return "Capture permission was denied."
+  if (error instanceof DOMException) {
+    if (error.name === "NotAllowedError") {
+      return "Capture permission was denied."
+    }
+
+    if (error.name === "NotSupportedError") {
+      return "Display capture is not supported in this browser context."
+    }
   }
 
   if (error instanceof Error) {

@@ -13,6 +13,7 @@ import {
   XIcon,
 } from "lucide-react"
 
+import { RecordingPlayer } from "@/components/meeting-notes/recording-player"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -172,7 +173,7 @@ export function MeetingNotesView({
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <Field className="min-w-0 max-w-xl flex-1">
+        <Field className="max-w-xl min-w-0 flex-1">
           <FieldLabel htmlFor="meeting-notes-search" className="sr-only">
             Search meeting notes
           </FieldLabel>
@@ -921,6 +922,8 @@ function MeetingNoteDetailSheet({
                 {formatDuration(note.durationSeconds)}
               </Badge>
             </div>
+
+            <RecordingPlayer note={note} />
 
             <DetailSection title="Summary" icon={SparklesIcon}>
               <p className="text-sm text-muted-foreground">

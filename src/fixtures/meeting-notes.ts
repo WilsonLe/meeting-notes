@@ -17,7 +17,7 @@ export const mockMeetingNotes = [
       mimeType: "video/webm;codecs=vp9,opus",
       durationSeconds: 3860,
       sizeBytes: 437_000_000,
-      capturedSources: ["browser-tab", "tab-audio"],
+      capturedSources: ["browser-tab", "tab-audio", "microphone"],
     },
     transcriptChunks: [
       {
@@ -48,7 +48,7 @@ export const mockMeetingNotes = [
         overlapBeforeSeconds: 10,
         status: "complete",
         retryCount: 0,
-        text: "If tab audio capture is missing, the recording must never be saved.",
+        text: "If shared audio capture is missing, the recording should continue with display and microphone tracks.",
       },
     ],
     summary: {
@@ -57,7 +57,7 @@ export const mockMeetingNotes = [
       decisions: [
         "Keep first release as a browser-only SPA with no backend service.",
         "Use Meeting Note as canonical aggregate for recording, transcript, summary, and processing runs.",
-        "Require tab video and tab audio before saving a recording.",
+        "Require display video before saving and treat shared audio plus microphone as best-effort sources.",
       ],
       actionItems: [
         "Draft unsupported-browser copy for non-Chromium browsers.",
@@ -98,7 +98,7 @@ export const mockMeetingNotes = [
       mimeType: "video/webm;codecs=vp9,opus",
       durationSeconds: 2740,
       sizeBytes: 298_000_000,
-      capturedSources: ["browser-tab", "tab-audio"],
+      capturedSources: ["window", "system-audio", "microphone"],
     },
     transcriptChunks: [
       {
@@ -152,7 +152,7 @@ export const mockMeetingNotes = [
       mimeType: "video/webm;codecs=vp9,opus",
       durationSeconds: 2580,
       sizeBytes: 241_000_000,
-      capturedSources: ["browser-tab", "tab-audio"],
+      capturedSources: ["desktop", "microphone"],
     },
     transcriptChunks: [],
     processingRuns: [],
@@ -178,8 +178,7 @@ export const mockMeetingNotes = [
         chunkCount: 0,
         completedChunks: 0,
         failedChunks: 0,
-        summary:
-          "Tab audio permission missing. Recording was not saved.",
+        summary: "Display capture permission missing. Recording was not saved.",
       },
     ],
   },
