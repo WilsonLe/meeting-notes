@@ -26,7 +26,14 @@ export type TranscriptChunkStatus =
   | "complete"
   | "failed"
 
-export type RecordingSource = "browser-tab" | "tab-audio"
+export type RecordingSource =
+  | "browser-tab"
+  | "desktop"
+  | "window"
+  | "display"
+  | "tab-audio"
+  | "system-audio"
+  | "microphone"
 
 export type RequirementStatus = "passed" | "missing" | "unknown"
 

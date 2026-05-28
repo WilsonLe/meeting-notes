@@ -26,16 +26,22 @@ export const mockBackupOptions = {
 
 export const mockRecordingRequirements = [
   {
-    id: "browser-tab",
-    label: "Browser tab video",
+    id: "display",
+    label: "Display video",
     description:
-      "Capture selected tab surface so the recording has visual context.",
+      "Capture the selected browser tab, window, or desktop surface.",
     status: "passed",
   },
   {
-    id: "tab-audio",
-    label: "Tab audio",
-    description: "Required. If tab audio is missing, fail before timer starts.",
-    status: "passed",
+    id: "system-audio",
+    label: "System or tab audio",
+    description: "Capture shared display audio when the browser provides it.",
+    status: "unknown",
+  },
+  {
+    id: "microphone",
+    label: "Microphone",
+    description: "Capture microphone audio when permission is granted.",
+    status: "unknown",
   },
 ] satisfies RecordingRequirement[]

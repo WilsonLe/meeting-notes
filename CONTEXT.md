@@ -11,7 +11,7 @@ Persistence keeps user data in browser-controlled IndexedDB storage behind repos
 ## Domain Language
 
 - Meeting Note: canonical aggregate shown in the UI. It owns Raw Recording, Transcript, Summary, and Processing Runs.
-- Raw Recording: browser-captured tab video and tab audio saved before any AI processing.
+- Raw Recording: browser-captured display video with available shared audio and best-effort microphone audio saved before any AI processing.
 - Transcript: chunked transcription output, stored as ordered chunks.
 - Summary: generated overview, decisions, action items, and risks.
 - Processing Run: resumable attempt to transcribe and summarize a Meeting Note.
@@ -32,7 +32,7 @@ Persistence keeps user data in browser-controlled IndexedDB storage behind repos
 - Primary routes: `/` for the Meeting Notes list and `/<meeting-id>/edit` for the minimal capture page.
 - The sidebar keeps collapse state in memory and stores only local workspace selection in IndexedDB.
 - Recording is allowed without provider settings. Saved notes land in recorded state.
-- Record preflight requires browser tab video and tab audio from `getDisplayMedia`; missing tab media or unsupported capture APIs fail before saving.
+- Record preflight requires display video from `getDisplayMedia`; tab/window/desktop surfaces are accepted, shared audio is optional, and microphone capture is best effort through `getUserMedia`.
 - Desktop Chrome/Edge are first supported browsers; unsupported browsers must fail clearly.
 - Settings uses `Verify Provider` wording. Verification calls the provider models endpoint and expects valid models.
 
@@ -45,4 +45,4 @@ Persistence keeps user data in browser-controlled IndexedDB storage behind repos
 
 ## Current Issue Scope
 
-This PR now includes local workspace persistence, draft Meeting Note creation, minimal path routing, and browser-tab MediaRecorder capture saved to IndexedDB. It still does not implement OpenAI requests, import/export execution, or background processing.
+This PR now includes local workspace persistence, draft Meeting Note creation, minimal path routing, display/microphone MediaRecorder capture saved to IndexedDB, and local playback/download for saved recordings. It still does not implement OpenAI requests, import/export execution, or background processing.
