@@ -140,31 +140,6 @@ body {
   background: color-mix(in oklch, var(--primary) 22%, transparent);
 }
 
-.app-atmosphere {
-  background-image:
-    radial-gradient(
-      circle at top left,
-      color-mix(in oklch, var(--primary) 18%, transparent),
-      transparent 34rem
-    ),
-    radial-gradient(
-      circle at 85% 15%,
-      color-mix(in oklch, var(--accent) 45%, transparent),
-      transparent 28rem
-    ),
-    linear-gradient(
-      135deg,
-      color-mix(in oklch, var(--muted) 72%, transparent),
-      transparent 38%
-    );
-}
-
-.card-hairline {
-  box-shadow:
-    0 1px 0 color-mix(in oklch, var(--foreground) 5%, transparent),
-    0 24px 80px color-mix(in oklch, var(--foreground) 6%, transparent);
-}
-
 @layer base {
   html {
     @apply font-mono;

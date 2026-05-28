@@ -26,7 +26,7 @@ export type TranscriptChunkStatus =
   | "complete"
   | "failed"
 
-export type RecordingSource = "browser-tab" | "tab-audio" | "microphone"
+export type RecordingSource = "browser-tab" | "tab-audio"
 
 export type RequirementStatus = "passed" | "missing" | "unknown"
 
@@ -78,6 +78,7 @@ export interface MeetingSummary {
 
 export interface MeetingNote {
   id: string
+  workspaceId: string
   title: string
   state: MeetingNoteState
   createdAt: string

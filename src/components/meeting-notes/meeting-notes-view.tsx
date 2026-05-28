@@ -6,10 +6,8 @@ import {
   Clock3Icon,
   FileTextIcon,
   FilterIcon,
-  ListFilterIcon,
   PlusIcon,
   SearchIcon,
-  SlidersHorizontalIcon,
   SparklesIcon,
   UsersIcon,
   XIcon,
@@ -31,14 +29,6 @@ import {
   DropdownMenuGroup,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty"
 import { Field, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import {
@@ -138,7 +128,19 @@ const emptyFilterModel = (): MeetingNoteFilterModel => ({
   groups: [createFilterGroup()],
 })
 
-export function MeetingNotesView({ notes }: { notes: MeetingNote[] }) {
+type MeetingNotesViewProps = {
+  notes: MeetingNote[]
+  isCreatingNote?: boolean
+  onCreateNote: () => void
+  onResumeCapture: (note: MeetingNote) => void
+}
+
+export function MeetingNotesView({
+  notes,
+  isCreatingNote = false,
+  onCreateNote,
+  onResumeCapture,
+}: MeetingNotesViewProps) {
   const [query, setQuery] = useState("")
   const [filterModel, setFilterModel] = useState(emptyFilterModel)
   const [selectedNote, setSelectedNote] = useState<MeetingNote | null>(null)
@@ -151,107 +153,84 @@ export function MeetingNotesView({ notes }: { notes: MeetingNote[] }) {
   }, [filterModel, notes, query])
 
   const activeFilterCount = countActiveMeetingNoteFilterClauses(filterModel)
-  const hasRealRows = notes.length > 0
 
   return (
-    <div className="flex flex-col gap-6">
-      <section className="grid gap-4 md:grid-cols-3">
-        <MetricCard
-          icon={FileTextIcon}
-          label="Local notes"
-          value={String(notes.length)}
-          detail="Real meeting-note records currently loaded in memory."
-        />
-        <MetricCard
-          icon={ListFilterIcon}
-          label="Visible rows"
-          value={String(filteredNotes.length)}
-          detail="Rows after search plus OR/AND filters."
-        />
-        <MetricCard
-          icon={SlidersHorizontalIcon}
-          label="Active clauses"
-          value={String(activeFilterCount)}
-          detail="Top-level OR groups with AND clauses inside each group."
-        />
-      </section>
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="font-heading text-2xl font-semibold tracking-tight">
+          Meeting Notes
+        </h1>
+        <Button
+          type="button"
+          disabled={isCreatingNote}
+          onClick={onCreateNote}
+          className="rounded-none"
+        >
+          <PlusIcon data-icon="inline-start" />
+          {isCreatingNote ? "Creating..." : "Create"}
+        </Button>
+      </div>
 
-      <Card className="card-hairline overflow-hidden">
-        <CardHeader className="gap-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-            <div className="min-w-0">
-              <CardTitle className="font-heading text-2xl">
-                Meeting Notes
-              </CardTitle>
-              <CardDescription>
-                Search local rows, build OR groups of AND clauses, then open a
-                note title for detail.
-              </CardDescription>
-            </div>
-            <FilterBuilderPopover
-              model={filterModel}
-              activeFilterCount={activeFilterCount}
-              onChange={setFilterModel}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <Field className="min-w-0 max-w-xl flex-1">
+          <FieldLabel htmlFor="meeting-notes-search" className="sr-only">
+            Search meeting notes
+          </FieldLabel>
+          <div className="relative">
+            <SearchIcon
+              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+              aria-hidden="true"
+            />
+            <Input
+              id="meeting-notes-search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search title, status, participants, summary..."
+              className="rounded-none pl-9"
             />
           </div>
+        </Field>
+        <FilterBuilderPopover
+          model={filterModel}
+          activeFilterCount={activeFilterCount}
+          onChange={setFilterModel}
+        />
+      </div>
 
-          <Field className="max-w-xl">
-            <FieldLabel htmlFor="meeting-notes-search" className="sr-only">
-              Search meeting notes
-            </FieldLabel>
-            <div className="relative">
-              <SearchIcon
-                className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
-                aria-hidden="true"
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="min-w-56">Title</TableHead>
+            <TableHead>Date / time</TableHead>
+            <TableHead>Participants</TableHead>
+            <TableHead>Duration</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Action items</TableHead>
+            <TableHead className="min-w-72">Summary</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filteredNotes.length > 0 ? (
+            filteredNotes.map((note) => (
+              <MeetingNoteRow
+                key={note.id}
+                note={note}
+                onSelect={() => setSelectedNote(note)}
+                onResumeCapture={() => onResumeCapture(note)}
               />
-              <Input
-                id="meeting-notes-search"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search title, status, participants, summary..."
-                className="pl-9"
-              />
-            </div>
-          </Field>
-        </CardHeader>
-
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="min-w-56">Title</TableHead>
-                <TableHead>Date / time</TableHead>
-                <TableHead>Participants</TableHead>
-                <TableHead>Duration</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Action items</TableHead>
-                <TableHead className="min-w-72">Summary</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredNotes.length > 0 ? (
-                filteredNotes.map((note) => (
-                  <MeetingNoteRow
-                    key={note.id}
-                    note={note}
-                    onSelect={() => setSelectedNote(note)}
-                  />
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={7} className="p-0 whitespace-normal">
-                    <MeetingNotesEmptyState
-                      hasRealRows={hasRealRows}
-                      query={query}
-                      activeFilterCount={activeFilterCount}
-                    />
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell
+                colSpan={7}
+                className="h-32 text-center text-sm text-muted-foreground"
+              >
+                No meeting notes yet
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
 
       <MeetingNoteDetailSheet
         note={selectedNote}
@@ -266,51 +245,38 @@ export function MeetingNotesView({ notes }: { notes: MeetingNote[] }) {
   )
 }
 
-function MetricCard({
-  icon: Icon,
-  label,
-  value,
-  detail,
-}: {
-  icon: typeof FileTextIcon
-  label: string
-  value: string
-  detail: string
-}) {
-  return (
-    <Card className="card-hairline">
-      <CardHeader className="gap-3">
-        <div className="flex items-center gap-3">
-          <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <Icon aria-hidden="true" />
-          </div>
-          <div className="min-w-0">
-            <CardDescription>{label}</CardDescription>
-            <CardTitle className="font-heading text-3xl">{value}</CardTitle>
-          </div>
-        </div>
-        <p className="text-sm text-muted-foreground">{detail}</p>
-      </CardHeader>
-    </Card>
-  )
-}
-
 function MeetingNoteRow({
   note,
   onSelect,
+  onResumeCapture,
 }: {
   note: MeetingNote
   onSelect: () => void
+  onResumeCapture: () => void
 }) {
+  const isDraft = note.state === "draft"
+
   return (
     <TableRow>
       <TableCell className="max-w-72 whitespace-normal">
         <Button
           variant="link"
           className="h-auto justify-start p-0 text-left font-medium whitespace-normal"
-          onClick={onSelect}
+          onClick={isDraft ? onResumeCapture : onSelect}
+          aria-label={
+            isDraft
+              ? `Resume capture for ${note.title}`
+              : `Open details for ${note.title}`
+          }
         >
-          {note.title}
+          <span className="flex flex-col items-start gap-1">
+            <span>{note.title}</span>
+            {isDraft && (
+              <span className="text-xs font-normal text-muted-foreground">
+                Resume capture
+              </span>
+            )}
+          </span>
         </Button>
       </TableCell>
       <TableCell>{formatCompactDate(note.createdAt)}</TableCell>
@@ -326,51 +292,6 @@ function MeetingNoteRow({
         {note.summary?.overview ?? "No generated summary yet"}
       </TableCell>
     </TableRow>
-  )
-}
-
-function MeetingNotesEmptyState({
-  hasRealRows,
-  query,
-  activeFilterCount,
-}: {
-  hasRealRows: boolean
-  query: string
-  activeFilterCount: number
-}) {
-  const filteredEmpty = hasRealRows && (query.trim() || activeFilterCount > 0)
-
-  return (
-    <Empty className="min-h-96 rounded-none border-0">
-      <EmptyHeader>
-        <EmptyMedia variant="icon">
-          {filteredEmpty ? (
-            <SearchIcon aria-hidden="true" />
-          ) : (
-            <SparklesIcon aria-hidden="true" />
-          )}
-        </EmptyMedia>
-        <EmptyTitle>
-          {filteredEmpty ? "No matching meeting notes" : "No meeting notes yet"}
-        </EmptyTitle>
-        <EmptyDescription>
-          {filteredEmpty
-            ? "Search and filters removed every loaded row. Adjust the OR groups or clear the query."
-            : "Real local meeting-note data is empty. The table, filter builder, and detail sheet are ready for rows once records exist."}
-        </EmptyDescription>
-      </EmptyHeader>
-      <EmptyContent>
-        <div className="flex flex-wrap justify-center gap-2 text-xs text-muted-foreground">
-          <Badge variant="outline">title</Badge>
-          <Badge variant="outline">date / time</Badge>
-          <Badge variant="outline">participants</Badge>
-          <Badge variant="outline">duration</Badge>
-          <Badge variant="outline">status</Badge>
-          <Badge variant="outline">action items</Badge>
-          <Badge variant="outline">summary</Badge>
-        </div>
-      </EmptyContent>
-    </Empty>
   )
 }
 
@@ -436,7 +357,7 @@ function FilterBuilderPopover({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline">
+        <Button variant="outline" className="rounded-none">
           <FilterIcon data-icon="inline-start" />
           Filters
           {activeFilterCount > 0 && (

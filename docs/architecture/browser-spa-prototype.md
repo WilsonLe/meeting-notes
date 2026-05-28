@@ -2,23 +2,23 @@
 
 ## Layers
 
-- `src/lib/domain`: durable domain types and constants. Keep app rules here before storage or engine code exists.
-- `src/fixtures`: mock notes and settings for static screens. Fixtures model realistic states without real user data or secrets.
+- `src/lib/domain`: durable domain types and constants shared by UI and persistence.
+- `src/lib/local-workspace-repository.ts`: IndexedDB repository boundary for local workspaces, selected workspace metadata, draft notes, and raw recording blobs.
+- `src/fixtures`: mock notes and settings for static examples/tests. Fixtures model realistic states without real user data or secrets.
 - `src/components/ui`: shadcn-generated primitives. Prefer semantic tokens and component variants over custom color utilities.
-- `src/App.tsx`: first-PR in-memory navigation and screen composition.
+- `src/App.tsx`: lightweight path routing, shell composition, workspace switching, and repository orchestration.
 
 ## Navigation
 
-The prototype uses React state for screen selection: Dashboard, Record, Meeting Detail, and Settings. Import/Export is a controlled dialog available from shell and dashboard actions. This keeps first PR independent of routing decisions.
+The app uses minimal browser history handling instead of a router dependency. `/` renders the Meeting Notes list, and `/<meeting-id>/edit` renders the minimal capture page for a persisted draft note.
 
 ## Storage Boundary
 
-No meeting-data storage adapter exists in the first PR. Future meeting persistence should enter through repository functions, keep browser storage APIs out of UI components, write versioned records, and run migrations before processing resume checks. Theme preference localStorage is a UI-only scaffold exception.
+Meeting persistence enters through repository functions and keeps browser storage APIs out of screen components. IndexedDB stores workspaces, notes, recordings, schema/database metadata, and migration records; future saved-shape changes must add forward-only migrations before data is read as the latest shape.
 
 ## Future Seams
 
-- Replace fixtures with browser persistence repository.
-- Replace record screen actions with MediaRecorder capture and preflight checks.
-- Replace provider form toast with real models endpoint verification.
-- Replace transcript mock progress with chunk scheduler and resumable processing state.
-- Replace dialog controls with real backup import/export serializers.
+- Expand the repository with backup import/export serializers.
+- Add provider settings persistence and real models endpoint verification.
+- Add transcript chunk scheduler and resumable processing state.
+- Add forward-only migrations before changing saved workspace, note, or recording shapes.

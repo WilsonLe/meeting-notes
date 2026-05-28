@@ -38,11 +38,4 @@ export const mockRecordingRequirements = [
     description: "Required. If tab audio is missing, fail before timer starts.",
     status: "passed",
   },
-  {
-    id: "microphone",
-    label: "Microphone voice",
-    description:
-      "Required. If mic permission or device is missing, fail before timer starts.",
-    status: "unknown",
-  },
 ] satisfies RecordingRequirement[]

@@ -6,12 +6,12 @@ Meeting Notes is a pure browser single-page app for one user. It has no backend,
 
 ## Storage Contract
 
-Later persistence work must keep user data in browser-controlled storage behind a repository boundary. Meeting Note owns Raw Recording, Transcript, Summary, and Processing Runs; provider settings and backup options live in app settings. Persisted data and backup payloads must include schema/version metadata, with forward-only migrations or checkpoints before saved shapes change.
+Persistence keeps user data in browser-controlled IndexedDB storage behind repository functions in `src/lib/local-workspace-repository.ts`. The current repository stores local workspaces, selected workspace metadata, draft Meeting Notes, and raw recording blobs with schema/database metadata plus a migrations store as the forward-only migration boundary. Meeting Note owns Raw Recording, Transcript, Summary, and Processing Runs; provider settings and backup options live in app settings. Persisted data and backup payloads must include schema/version metadata, with forward-only migrations or checkpoints before saved shapes change.
 
 ## Domain Language
 
 - Meeting Note: canonical aggregate shown in the UI. It owns Raw Recording, Transcript, Summary, and Processing Runs.
-- Raw Recording: browser-captured tab video, tab audio, and microphone voice saved before any AI processing.
+- Raw Recording: browser-captured tab video and tab audio saved before any AI processing.
 - Transcript: chunked transcription output, stored as ordered chunks.
 - Summary: generated overview, decisions, action items, and risks.
 - Processing Run: resumable attempt to transcribe and summarize a Meeting Note.
@@ -29,10 +29,10 @@ Later persistence work must keep user data in browser-controlled storage behind 
 
 ## UX Decisions
 
-- Primary screens: Dashboard, Record, Meeting Detail, Settings, and Import/Export dialog.
-- Dashboard filters: All, Ready, Processing, Failed, Archived. Search applies after the visible filter.
-- Recording is allowed without provider settings. Saved notes land in recorded state with a CTA to configure and Verify Provider.
-- Record preflight requires browser tab video, tab audio, and microphone voice. Missing tab audio or microphone fails before the timer starts.
+- Primary routes: `/` for the Meeting Notes list and `/<meeting-id>/edit` for the minimal capture page.
+- The sidebar keeps collapse state in memory and stores only local workspace selection in IndexedDB.
+- Recording is allowed without provider settings. Saved notes land in recorded state.
+- Record preflight requires browser tab video and tab audio from `getDisplayMedia`; missing tab media or unsupported capture APIs fail before saving.
 - Desktop Chrome/Edge are first supported browsers; unsupported browsers must fail clearly.
 - Settings uses `Verify Provider` wording. Verification calls the provider models endpoint and expects valid models.
 
@@ -43,6 +43,6 @@ Later persistence work must keep user data in browser-controlled storage behind 
 - Failed chunks retry twice with backoff before the run fails.
 - Incomplete processing resumes on next launch.
 
-## First PR Scope
+## Current Issue Scope
 
-This PR initializes the app scaffold, domain docs/types, mock data, and static prototype shell only. It does not implement MediaRecorder capture, OpenAI requests, meeting-data persistence, import/export execution, or background processing. Theme preference localStorage is the UI-only scaffold exception.
+This PR now includes local workspace persistence, draft Meeting Note creation, minimal path routing, and browser-tab MediaRecorder capture saved to IndexedDB. It still does not implement OpenAI requests, import/export execution, or background processing.

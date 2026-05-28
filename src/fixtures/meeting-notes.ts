@@ -3,6 +3,7 @@ import type { MeetingNote } from "@/lib/domain"
 export const mockMeetingNotes = [
   {
     id: "note-product-sync",
+    workspaceId: "workspace-default",
     title: "Product sync - consent capture",
     state: "ready",
     createdAt: "2026-05-27T15:00:00.000Z",
@@ -16,7 +17,7 @@ export const mockMeetingNotes = [
       mimeType: "video/webm;codecs=vp9,opus",
       durationSeconds: 3860,
       sizeBytes: 437_000_000,
-      capturedSources: ["browser-tab", "tab-audio", "microphone"],
+      capturedSources: ["browser-tab", "tab-audio"],
     },
     transcriptChunks: [
       {
@@ -47,7 +48,7 @@ export const mockMeetingNotes = [
         overlapBeforeSeconds: 10,
         status: "complete",
         retryCount: 0,
-        text: "If tab audio or microphone capture is missing, the timer must never start.",
+        text: "If tab audio capture is missing, the recording must never be saved.",
       },
     ],
     summary: {
@@ -56,7 +57,7 @@ export const mockMeetingNotes = [
       decisions: [
         "Keep first release as a browser-only SPA with no backend service.",
         "Use Meeting Note as canonical aggregate for recording, transcript, summary, and processing runs.",
-        "Require tab video, tab audio, and microphone voice before recording timer starts.",
+        "Require tab video and tab audio before saving a recording.",
       ],
       actionItems: [
         "Draft unsupported-browser copy for non-Chromium browsers.",
@@ -83,6 +84,7 @@ export const mockMeetingNotes = [
   },
   {
     id: "note-support-review",
+    workspaceId: "workspace-default",
     title: "Support review - May incidents",
     state: "processing",
     createdAt: "2026-05-26T18:30:00.000Z",
@@ -96,7 +98,7 @@ export const mockMeetingNotes = [
       mimeType: "video/webm;codecs=vp9,opus",
       durationSeconds: 2740,
       sizeBytes: 298_000_000,
-      capturedSources: ["browser-tab", "tab-audio", "microphone"],
+      capturedSources: ["browser-tab", "tab-audio"],
     },
     transcriptChunks: [
       {
@@ -136,6 +138,7 @@ export const mockMeetingNotes = [
   },
   {
     id: "note-design-crit",
+    workspaceId: "workspace-default",
     title: "Design crit - dashboard filters",
     state: "recorded",
     createdAt: "2026-05-24T11:00:00.000Z",
@@ -149,13 +152,14 @@ export const mockMeetingNotes = [
       mimeType: "video/webm;codecs=vp9,opus",
       durationSeconds: 2580,
       sizeBytes: 241_000_000,
-      capturedSources: ["browser-tab", "tab-audio", "microphone"],
+      capturedSources: ["browser-tab", "tab-audio"],
     },
     transcriptChunks: [],
     processingRuns: [],
   },
   {
     id: "note-sales-retro",
+    workspaceId: "workspace-default",
     title: "Sales retro - audio device failure",
     state: "failed",
     createdAt: "2026-05-22T20:00:00.000Z",
@@ -175,12 +179,13 @@ export const mockMeetingNotes = [
         completedChunks: 0,
         failedChunks: 0,
         summary:
-          "Microphone permission missing. Recording timer never started.",
+          "Tab audio permission missing. Recording was not saved.",
       },
     ],
   },
   {
     id: "note-planning-archive",
+    workspaceId: "workspace-default",
     title: "Archived planning call",
     state: "archived",
     createdAt: "2026-05-15T14:00:00.000Z",
@@ -194,7 +199,7 @@ export const mockMeetingNotes = [
       mimeType: "video/webm;codecs=vp9,opus",
       durationSeconds: 3180,
       sizeBytes: 316_000_000,
-      capturedSources: ["browser-tab", "tab-audio", "microphone"],
+      capturedSources: ["browser-tab", "tab-audio"],
     },
     transcriptChunks: [
       {
@@ -210,7 +215,7 @@ export const mockMeetingNotes = [
     ],
     summary: {
       overview: "Planning note archived after export verification.",
-      decisions: ["No follow-up required for first PR."],
+      decisions: ["No follow-up required for archived plan."],
       actionItems: [],
       risks: [],
     },

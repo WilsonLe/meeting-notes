@@ -14,6 +14,7 @@ type ClauseInput = Omit<MeetingNoteFilterClause, "id">
 
 const baseNote: MeetingNote = {
   id: "base-note",
+  workspaceId: "workspace-default",
   title: "Base sync",
   state: "draft",
   createdAt: "2026-01-01T09:00:00.000Z",
