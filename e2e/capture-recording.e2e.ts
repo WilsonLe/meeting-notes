@@ -23,7 +23,7 @@ test.describe("capture recording", () => {
     await expect(
       page.getByRole("button", { name: "Stop Capture" })
     ).toBeVisible()
-    await expect(page.getByText("Live capture preview")).toBeVisible()
+    await expect(page.getByText("Preview")).toBeVisible()
     await expect(
       page.getByText("System or tab audio was not shared", { exact: false })
     ).toBeVisible()

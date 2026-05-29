@@ -1,6 +1,5 @@
 import { useMemo, useState, type KeyboardEvent } from "react"
 import {
-  CalendarClockIcon,
   CheckIcon,
   Clock3Icon,
   FileTextIcon,
@@ -35,14 +34,6 @@ import {
   DropdownMenuGroup,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty"
 import { Field, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import {
@@ -156,75 +147,60 @@ export function MeetingNotesView({
   const hasFilteredNotes = filteredNotes.length > 0
 
   return (
-    <div className="flex flex-col gap-6">
-      <section className="rounded-3xl border bg-card/95 p-5 shadow-sm shadow-foreground/5 sm:p-6">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div className="max-w-3xl">
-            <p className="mb-2 text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
-              Local-first workspace
-            </p>
-            <h1 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
-              Meeting Notes
-            </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
-              Capture, search, and review notes stored in this browser. No
-              server sync, no hidden background jobs.
-            </p>
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="font-heading text-3xl font-semibold tracking-tight">
+            Meeting Notes
+          </h1>
+        </div>
+        <Button
+          type="button"
+          disabled={isCreatingNote}
+          onClick={onCreateNote}
+          className="w-full sm:w-fit"
+        >
+          <PlusIcon data-icon="inline-start" />
+          {isCreatingNote ? "Creating..." : "Create"}
+        </Button>
+      </div>
+
+      <dl className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <StatPill icon={FileTextIcon} label="Notes" value={stats.total} />
+        <StatPill icon={Clock3Icon} label="Drafts" value={stats.drafts} />
+        <StatPill icon={CheckIcon} label="Ready" value={stats.ready} />
+        <StatPill
+          icon={FileVideoIcon}
+          label="Recordings"
+          value={stats.recordings}
+        />
+      </dl>
+
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <Field className="min-w-0 flex-1">
+          <FieldLabel htmlFor="meeting-notes-search" className="sr-only">
+            Search meeting notes
+          </FieldLabel>
+          <div className="relative">
+            <SearchIcon
+              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+              aria-hidden="true"
+            />
+            <Input
+              id="meeting-notes-search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search"
+              className="h-10 pl-9"
+            />
           </div>
-          <Button
-            type="button"
-            disabled={isCreatingNote}
-            onClick={onCreateNote}
-            className="w-full sm:w-fit"
-          >
-            <PlusIcon data-icon="inline-start" />
-            {isCreatingNote ? "Creating..." : "Create"}
-          </Button>
-        </div>
-
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <StatPill icon={FileTextIcon} label="Notes" value={stats.total} />
-          <StatPill icon={Clock3Icon} label="Drafts" value={stats.drafts} />
-          <StatPill
-            icon={CalendarClockIcon}
-            label="Ready"
-            value={stats.ready}
-          />
-          <StatPill
-            icon={FileVideoIcon}
-            label="Recordings"
-            value={stats.recordings}
-          />
-        </div>
-      </section>
-
-      <Card className="gap-4 p-4 shadow-sm shadow-foreground/5">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <Field className="min-w-0 flex-1">
-            <FieldLabel htmlFor="meeting-notes-search" className="sr-only">
-              Search meeting notes
-            </FieldLabel>
-            <div className="relative">
-              <SearchIcon
-                className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-                aria-hidden="true"
-              />
-              <Input
-                id="meeting-notes-search"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search notes..."
-                className="h-10 pl-9"
-              />
-            </div>
-          </Field>
-          <FilterBuilderPopover
-            model={filterModel}
-            activeFilterCount={activeFilterCount}
-            onChange={setFilterModel}
-          />
-        </div>
-      </Card>
+        </Field>
+        <FilterBuilderPopover
+          model={filterModel}
+          activeFilterCount={activeFilterCount}
+          onChange={setFilterModel}
+        />
+      </div>
 
       {!hasFilteredNotes ? (
         <MeetingNotesEmptyState
@@ -244,7 +220,7 @@ export function MeetingNotesView({
             ))}
           </div>
 
-          <Card className="hidden gap-0 overflow-hidden p-0 shadow-sm shadow-foreground/5 md:flex">
+          <div className="hidden border md:block">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
@@ -267,7 +243,7 @@ export function MeetingNotesView({
                 ))}
               </TableBody>
             </Table>
-          </Card>
+          </div>
         </>
       )}
     </div>
@@ -284,14 +260,14 @@ function StatPill({
   value: number
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl border bg-background/70 px-4 py-3 text-sm shadow-sm shadow-foreground/5 [&_svg]:size-4 [&_svg]:text-muted-foreground">
-      <div className="flex items-center gap-2 text-muted-foreground">
+    <div className="flex items-center justify-between gap-3 border bg-background/70 px-3 py-2 text-sm">
+      <dt className="flex items-center gap-2 text-muted-foreground [&_svg]:size-4">
         <Icon aria-hidden="true" />
         {label}
-      </div>
-      <span className="font-heading text-lg font-semibold text-foreground">
+      </dt>
+      <dd className="font-heading text-lg font-semibold text-foreground">
         {value}
-      </span>
+      </dd>
     </div>
   )
 }
@@ -306,33 +282,18 @@ function MeetingNotesEmptyState({
   onCreateNote: () => void
 }) {
   return (
-    <Empty className="min-h-80 border bg-card shadow-sm shadow-foreground/5">
-      <EmptyHeader>
-        <EmptyMedia variant="icon">
-          <FileTextIcon aria-hidden="true" />
-        </EmptyMedia>
-        <EmptyTitle>
-          {hasNotes ? "No notes match this view" : "Nothing here yet"}
-        </EmptyTitle>
-        <EmptyDescription>
-          {hasNotes
-            ? "Adjust search or filters to bring saved local notes back into view."
-            : "Create a local draft, capture recording, then return here to review it."}
-        </EmptyDescription>
-      </EmptyHeader>
+    <div className="flex min-h-40 flex-col items-start gap-3 border-t pt-5 text-left">
+      <span className="flex size-8 items-center justify-center bg-muted text-muted-foreground [&_svg]:size-4">
+        <FileTextIcon aria-hidden="true" />
+      </span>
+      <p className="text-sm font-medium">{hasNotes ? "No matches" : "Empty"}</p>
       {!hasNotes && (
-        <EmptyContent>
-          <Button
-            type="button"
-            disabled={isCreatingNote}
-            onClick={onCreateNote}
-          >
-            <PlusIcon data-icon="inline-start" />
-            {isCreatingNote ? "Creating..." : "Start note"}
-          </Button>
-        </EmptyContent>
+        <Button type="button" disabled={isCreatingNote} onClick={onCreateNote}>
+          <PlusIcon data-icon="inline-start" />
+          {isCreatingNote ? "Creating..." : "Start"}
+        </Button>
       )}
-    </Empty>
+    </div>
   )
 }
 
@@ -347,7 +308,7 @@ function MeetingNoteCard({
     <button
       type="button"
       onClick={onOpen}
-      className="group flex w-full flex-col gap-3 rounded-2xl border bg-card p-4 text-left shadow-sm shadow-foreground/5 transition-colors hover:bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      className="group flex w-full flex-col gap-3 border bg-card p-4 text-left transition-colors hover:bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       aria-label={`Open details for ${note.title}`}
     >
       <div className="flex items-start justify-between gap-3">
@@ -360,8 +321,8 @@ function MeetingNoteCard({
         <StatusBadge state={note.state} />
       </div>
 
-      <p className="line-clamp-3 text-sm leading-6 text-muted-foreground">
-        {note.summary?.overview ?? "No generated summary yet"}
+      <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">
+        {note.summary?.overview ?? "None"}
       </p>
 
       <div className="flex flex-wrap gap-2">
@@ -408,14 +369,7 @@ function MeetingNoteRow({
       aria-label={`Open details for ${note.title}`}
     >
       <TableCell className="max-w-80 px-4 whitespace-normal">
-        <div className="flex flex-col gap-1">
-          <span className="font-medium text-foreground">{note.title}</span>
-          {note.state === "draft" && (
-            <span className="text-xs text-muted-foreground">
-              Draft saved locally
-            </span>
-          )}
-        </div>
+        <span className="font-medium text-foreground">{note.title}</span>
       </TableCell>
       <TableCell>{formatCompactDate(note.createdAt)}</TableCell>
       <TableCell className="max-w-64 whitespace-normal">
@@ -427,7 +381,7 @@ function MeetingNoteRow({
       </TableCell>
       <TableCell>{note.summary?.actionItems.length ?? 0}</TableCell>
       <TableCell className="max-w-96 pr-4 whitespace-normal text-muted-foreground">
-        {note.summary?.overview ?? "No generated summary yet"}
+        {note.summary?.overview ?? "None"}
       </TableCell>
     </TableRow>
   )
@@ -495,7 +449,7 @@ function FilterBuilderPopover({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" className="rounded-none">
+        <Button variant="outline">
           <FilterIcon data-icon="inline-start" />
           Filters
           {activeFilterCount > 0 && (
@@ -641,7 +595,7 @@ function FilterClauseEditor({
   const valueControlId = `${clause.id}-value`
 
   return (
-    <div className="rounded-lg border bg-background p-3">
+    <div className="border bg-background p-3">
       <div className="grid gap-3 lg:grid-cols-[minmax(10rem,0.9fr)_minmax(10rem,0.8fr)_minmax(14rem,1.4fr)_auto] lg:items-end">
         <Field>
           <FieldLabel htmlFor={fieldControlId}>Field</FieldLabel>

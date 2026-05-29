@@ -1,18 +1,9 @@
 import { useEffect, useRef, useState } from "react"
-import { MonitorUpIcon, ShieldCheckIcon } from "lucide-react"
+import { MonitorUpIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { RecordingPlayer } from "@/components/meeting-notes/recording-player"
-import { formatDateTime } from "@/components/meeting-notes/meeting-note-format"
 import { StatusBadge } from "@/components/meeting-notes/meeting-note-ui"
-import { Badge } from "@/components/ui/badge"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import { saveMeetingNoteRecording } from "@/lib/local-workspace-repository"
 import type { MeetingNote, RecordingSource } from "@/lib/domain"
 
@@ -289,70 +280,55 @@ export function MeetingNoteEditView({
   }
 
   return (
-    <section className="mx-auto flex w-full max-w-5xl flex-col gap-5">
-      <Card className="overflow-hidden border-border/80 bg-card/95 shadow-sm shadow-foreground/5">
-        <CardHeader className="gap-4 p-5 sm:p-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="min-w-0">
-              <div className="mb-3 flex flex-wrap items-center gap-2">
-                {note && <StatusBadge state={note.state} />}
-                <Badge variant="outline">
-                  <ShieldCheckIcon aria-hidden="true" />
-                  Stored in this browser
-                </Badge>
-              </div>
-              <CardTitle>
-                <h1 className="font-heading text-2xl tracking-tight sm:text-3xl">
-                  {note?.title ?? "Capture unavailable"}
-                </h1>
-              </CardTitle>
-              <CardDescription className="mt-2 max-w-2xl text-base">
-                {note
-                  ? `Created ${formatDateTime(note.createdAt)}. Choose a tab, window, or screen when the browser picker opens.`
-                  : "Meeting note not found in selected workspace."}
-              </CardDescription>
-            </div>
-
-            <Button
-              type="button"
-              size="lg"
-              disabled={!note || isRequesting || isSaving}
-              onClick={handleCaptureClick}
-              className="w-full sm:w-fit"
-            >
-              <MonitorUpIcon data-icon="inline-start" />
-              {isSaving
-                ? "Saving..."
-                : isRequesting
-                  ? "Opening picker..."
-                  : isRecording
-                    ? "Stop Capture"
-                    : "Capture"}
-            </Button>
-          </div>
-        </CardHeader>
-
-        <CardContent className="flex flex-col gap-5 p-5 pt-0 sm:p-6 sm:pt-0">
-          {previewStream && (
-            <div className="flex w-full flex-col gap-2">
-              <p className="text-sm font-medium">Live capture preview</p>
-              <video
-                ref={previewVideoRef}
-                autoPlay
-                muted
-                playsInline
-                className="aspect-video w-full rounded-2xl border bg-black shadow-sm"
-              />
+    <section className="flex w-full flex-col gap-5">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          <h1 className="font-heading text-3xl font-semibold tracking-tight">
+            {note?.title ?? "Capture unavailable"}
+          </h1>
+          {note && (
+            <div className="mt-3">
+              <StatusBadge state={note.state} />
             </div>
           )}
-          {(message || !note) && (
-            <p className="rounded-2xl border bg-background/70 p-3 text-sm text-muted-foreground">
-              {message ?? "Meeting note not found in selected workspace."}
-            </p>
-          )}
-          {note && <RecordingPlayer note={note} />}
-        </CardContent>
-      </Card>
+        </div>
+
+        <Button
+          type="button"
+          size="lg"
+          disabled={!note || isRequesting || isSaving}
+          onClick={handleCaptureClick}
+          className="w-full sm:w-fit"
+        >
+          <MonitorUpIcon data-icon="inline-start" />
+          {isSaving
+            ? "Saving..."
+            : isRequesting
+              ? "Opening picker..."
+              : isRecording
+                ? "Stop Capture"
+                : "Capture"}
+        </Button>
+      </div>
+
+      {previewStream && (
+        <div className="flex w-full flex-col gap-2">
+          <p className="text-sm font-medium">Preview</p>
+          <video
+            ref={previewVideoRef}
+            autoPlay
+            muted
+            playsInline
+            className="aspect-video w-full border bg-black"
+          />
+        </div>
+      )}
+      {(message || !note) && (
+        <p className="border bg-background/70 p-3 text-sm text-muted-foreground">
+          {message ?? "Meeting note not found."}
+        </p>
+      )}
+      {note && <RecordingPlayer note={note} />}
     </section>
   )
 }
