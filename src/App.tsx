@@ -5,7 +5,7 @@ import {
   useState,
   type ChangeEvent,
 } from "react"
-import { FileTextIcon } from "lucide-react"
+import { FileTextIcon, PlusIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -246,10 +246,7 @@ function App() {
         </SidebarContent>
 
         <SidebarFooter className="gap-2 p-3 group-data-[collapsible=icon]:hidden">
-          <label
-            htmlFor="workspace-select"
-            className="text-xs font-medium text-sidebar-foreground/70"
-          >
+          <label htmlFor="workspace-select" className="sr-only">
             Workspace
           </label>
           <select
@@ -268,11 +265,12 @@ function App() {
           <Button
             type="button"
             variant="outline"
-            size="sm"
+            size="icon-sm"
             disabled={isLoadingLocalState}
             onClick={handleAddWorkspace}
+            aria-label="Add workspace"
           >
-            Add
+            <PlusIcon />
           </Button>
         </SidebarFooter>
         <SidebarRail />

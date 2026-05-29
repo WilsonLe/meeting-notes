@@ -64,6 +64,13 @@ export function MeetingNoteDetailPage({
   const actionItems = note.summary?.actionItems ?? []
   const decisions = note.summary?.decisions ?? []
   const risks = note.summary?.risks ?? []
+  const hasDetailContent = Boolean(
+    note.rawRecording ||
+    note.summary?.overview ||
+    actionItems.length > 0 ||
+    decisions.length > 0 ||
+    risks.length > 0
+  )
 
   return (
     <div className="flex w-full flex-col gap-5">
@@ -74,14 +81,18 @@ export function MeetingNoteDetailPage({
           </h1>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <StatusBadge state={note.state} />
-            <Badge variant="outline">
-              <UsersIcon aria-hidden="true" />
-              {formatParticipants(note.participants)}
-            </Badge>
-            <Badge variant="outline">
-              <Clock3Icon aria-hidden="true" />
-              {formatDuration(note.durationSeconds)}
-            </Badge>
+            {note.participants.length > 0 && (
+              <Badge variant="outline">
+                <UsersIcon aria-hidden="true" />
+                {formatParticipants(note.participants)}
+              </Badge>
+            )}
+            {note.durationSeconds > 0 && (
+              <Badge variant="outline">
+                <Clock3Icon aria-hidden="true" />
+                {formatDuration(note.durationSeconds)}
+              </Badge>
+            )}
           </div>
         </div>
 
@@ -99,37 +110,50 @@ export function MeetingNoteDetailPage({
         </div>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="flex min-w-0 flex-col gap-4">
-          <RecordingPlayer note={note} />
+      <div
+        className={
+          hasDetailContent
+            ? "grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]"
+            : "grid max-w-sm gap-5"
+        }
+      >
+        {hasDetailContent && (
+          <div className="flex min-w-0 flex-col gap-4">
+            <RecordingPlayer note={note} />
 
-          <DetailSection title="Summary" icon={SparklesIcon}>
-            <p className="text-sm leading-6 text-muted-foreground">
-              {note.summary?.overview ?? "None"}
-            </p>
-          </DetailSection>
+            {note.summary?.overview && (
+              <DetailSection title="Summary" icon={SparklesIcon}>
+                <p className="text-sm leading-6 text-muted-foreground">
+                  {note.summary.overview}
+                </p>
+              </DetailSection>
+            )}
 
-          <DetailListSection
-            title="Action items"
-            icon={CheckIcon}
-            emptyText="None"
-            items={actionItems}
-          />
+            {actionItems.length > 0 && (
+              <DetailListSection
+                title="Action items"
+                icon={CheckIcon}
+                items={actionItems}
+              />
+            )}
 
-          <DetailListSection
-            title="Decisions"
-            icon={ListChecksIcon}
-            emptyText="None"
-            items={decisions}
-          />
+            {decisions.length > 0 && (
+              <DetailListSection
+                title="Decisions"
+                icon={ListChecksIcon}
+                items={decisions}
+              />
+            )}
 
-          <DetailListSection
-            title="Risks"
-            icon={FileTextIcon}
-            emptyText="None"
-            items={risks}
-          />
-        </div>
+            {risks.length > 0 && (
+              <DetailListSection
+                title="Risks"
+                icon={FileTextIcon}
+                items={risks}
+              />
+            )}
+          </div>
+        )}
 
         <aside className="flex flex-col gap-4">
           <DetailSection title="Timeline" icon={CalendarClockIcon}>
@@ -173,25 +197,19 @@ function DetailSection({
 function DetailListSection({
   title,
   icon,
-  emptyText,
   items,
 }: {
   title: string
   icon: typeof FileTextIcon
-  emptyText: string
   items: string[]
 }) {
   return (
     <DetailSection title={title} icon={icon}>
-      {items.length > 0 ? (
-        <ul className="flex list-disc flex-col gap-2 pl-5 text-sm leading-6 text-muted-foreground">
-          {items.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-sm text-muted-foreground">{emptyText}</p>
-      )}
+      <ul className="flex list-disc flex-col gap-2 pl-5 text-sm leading-6 text-muted-foreground">
+        {items.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
     </DetailSection>
   )
 }
