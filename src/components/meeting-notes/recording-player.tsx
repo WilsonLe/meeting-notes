@@ -61,13 +61,12 @@ function RecordingPlayerContent({ recording }: { recording: RawRecording }) {
   }, [recording.id])
 
   return (
-    <section className="flex w-full max-w-3xl flex-col gap-3 rounded-xl border bg-card p-4 text-card-foreground">
+    <section className="flex w-full flex-col gap-4 rounded-2xl border bg-card p-4 text-card-foreground shadow-sm shadow-foreground/5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex min-w-0 items-start gap-2">
-          <FileVideoIcon
-            className="mt-0.5 size-4 shrink-0 text-muted-foreground"
-            aria-hidden="true"
-          />
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground [&_svg]:size-4">
+            <FileVideoIcon aria-hidden="true" />
+          </span>
           <div className="min-w-0">
             <h2 className="font-heading text-sm font-medium">
               Saved recording
@@ -78,42 +77,36 @@ function RecordingPlayerContent({ recording }: { recording: RawRecording }) {
           </div>
         </div>
         {recordingUrl ? (
-          <Button asChild variant="outline" size="sm" className="rounded-none">
+          <Button asChild variant="outline" size="sm">
             <a href={recordingUrl} download={recording.fileName}>
               <DownloadIcon data-icon="inline-start" />
               Download WebM
             </a>
           </Button>
         ) : (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled
-            className="rounded-none"
-          >
+          <Button type="button" variant="outline" size="sm" disabled>
             Preparing download...
           </Button>
         )}
       </div>
 
       <dl className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-3">
-        <div>
-          <dt className="font-medium text-foreground">Duration</dt>
-          <dd>{formatDuration(recording.durationSeconds)}</dd>
-        </div>
-        <div>
-          <dt className="font-medium text-foreground">Size</dt>
-          <dd>{formatBytes(recording.sizeBytes)}</dd>
-        </div>
-        <div>
-          <dt className="font-medium text-foreground">Sources</dt>
-          <dd>{sourceLabel}</dd>
-        </div>
+        <RecordingMetric
+          label="Duration"
+          value={formatDuration(recording.durationSeconds)}
+        />
+        <RecordingMetric
+          label="Size"
+          value={formatBytes(recording.sizeBytes)}
+        />
+        <RecordingMetric label="Sources" value={sourceLabel} />
       </dl>
 
       {recordingError ? (
-        <p role="alert" className="text-sm text-destructive">
+        <p
+          role="alert"
+          className="rounded-xl border bg-background/70 p-3 text-sm text-destructive"
+        >
           {recordingError}
         </p>
       ) : recordingUrl ? (
@@ -121,16 +114,25 @@ function RecordingPlayerContent({ recording }: { recording: RawRecording }) {
           controls
           playsInline
           src={recordingUrl}
-          className="aspect-video w-full rounded-lg border bg-black"
+          className="aspect-video w-full rounded-2xl border bg-black shadow-sm"
         >
           <track kind="captions" />
         </video>
       ) : (
-        <p className="text-sm text-muted-foreground">
+        <p className="rounded-xl border bg-background/70 p-3 text-sm text-muted-foreground">
           Loading saved recording...
         </p>
       )}
     </section>
+  )
+}
+
+function RecordingMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border bg-background/70 p-3">
+      <dt className="font-medium text-foreground">{label}</dt>
+      <dd className="mt-1 break-words">{value}</dd>
+    </div>
   )
 }
 
