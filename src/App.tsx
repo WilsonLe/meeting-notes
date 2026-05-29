@@ -7,14 +7,7 @@ import {
 } from "react"
 import { FileTextIcon } from "lucide-react"
 
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
-} from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
 import {
   Sidebar,
   SidebarContent,
@@ -229,21 +222,11 @@ function App() {
 
   return (
     <SidebarProvider>
-      <Sidebar collapsible="icon" variant="inset">
+      <Sidebar collapsible="icon">
         <SidebarHeader className="p-3">
-          <div className="flex min-h-11 items-center gap-3 rounded-2xl border bg-background/70 px-3 py-2 shadow-sm shadow-foreground/5">
-            <span className="flex size-8 items-center justify-center rounded-xl bg-primary text-xs font-semibold text-primary-foreground">
-              MN
-            </span>
-            <div className="min-w-0 group-data-[collapsible=icon]:hidden">
-              <p className="truncate font-heading text-sm font-semibold">
-                Meeting Note
-              </p>
-              <p className="truncate text-xs text-sidebar-foreground/60">
-                Local-first capture
-              </p>
-            </div>
-          </div>
+          <span className="flex size-8 items-center justify-center bg-primary text-xs font-semibold text-primary-foreground">
+            MN
+          </span>
         </SidebarHeader>
 
         <SidebarContent className="px-2">
@@ -262,57 +245,45 @@ function App() {
           </SidebarMenu>
         </SidebarContent>
 
-        <SidebarFooter className="gap-3 p-3">
-          <div className="flex flex-col gap-2 rounded-2xl border bg-background/70 p-3 shadow-sm shadow-foreground/5 group-data-[collapsible=icon]:hidden">
-            <label
-              htmlFor="workspace-select"
-              className="text-xs font-medium text-sidebar-foreground/70"
-            >
-              Workspace
-            </label>
-            <select
-              id="workspace-select"
-              value={workspaceState.selectedWorkspaceId}
-              disabled={isLoadingLocalState}
-              onChange={handleWorkspaceChange}
-              className="h-9 w-full rounded-lg border border-sidebar-border bg-background px-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
-            >
-              {workspaceState.workspaces.map((workspace) => (
-                <option key={workspace.id} value={workspace.id}>
-                  {workspace.name}
-                </option>
-              ))}
-            </select>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={isLoadingLocalState}
-              onClick={handleAddWorkspace}
-            >
-              Add workspace
-            </Button>
-          </div>
+        <SidebarFooter className="gap-2 p-3 group-data-[collapsible=icon]:hidden">
+          <label
+            htmlFor="workspace-select"
+            className="text-xs font-medium text-sidebar-foreground/70"
+          >
+            Workspace
+          </label>
+          <select
+            id="workspace-select"
+            value={workspaceState.selectedWorkspaceId}
+            disabled={isLoadingLocalState}
+            onChange={handleWorkspaceChange}
+            className="h-9 w-full border border-sidebar-border bg-background px-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+          >
+            {workspaceState.workspaces.map((workspace) => (
+              <option key={workspace.id} value={workspace.id}>
+                {workspace.name}
+              </option>
+            ))}
+          </select>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={isLoadingLocalState}
+            onClick={handleAddWorkspace}
+          >
+            Add
+          </Button>
         </SidebarFooter>
         <SidebarRail />
       </Sidebar>
 
       <SidebarInset className="min-h-svh overflow-hidden bg-background/90">
-        <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur-xl">
+        <header className="sticky top-0 z-10 flex h-12 shrink-0 items-center border-b bg-background/80 px-4 backdrop-blur-xl">
           <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbPage>
-                  {getRouteLabel(route, routeNote)}
-                </BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
         </header>
 
-        <div className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
+        <div className="flex-1 overflow-auto p-4 md:p-6">
           {isLoadingLocalState ? (
             <p className="text-sm text-muted-foreground">
               Loading local workspace...
@@ -370,18 +341,6 @@ function parseRoute(pathname: string): AppRoute {
   }
 
   return { name: "meetings" }
-}
-
-function getRouteLabel(route: AppRoute, note: MeetingNote | null) {
-  if (route.name === "edit") {
-    return "Capture"
-  }
-
-  if (route.name === "detail") {
-    return note?.title ?? "Meeting detail"
-  }
-
-  return "Meeting Notes"
 }
 
 function sortNotesByCreatedAt(notes: MeetingNote[]) {

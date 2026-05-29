@@ -61,10 +61,10 @@ function RecordingPlayerContent({ recording }: { recording: RawRecording }) {
   }, [recording.id])
 
   return (
-    <section className="flex w-full flex-col gap-4 rounded-2xl border bg-card p-4 text-card-foreground shadow-sm shadow-foreground/5">
+    <section className="flex w-full flex-col gap-4 border bg-card p-4 text-card-foreground">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-start gap-3">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground [&_svg]:size-4">
+          <span className="flex size-9 shrink-0 items-center justify-center bg-muted text-muted-foreground [&_svg]:size-4">
             <FileVideoIcon aria-hidden="true" />
           </span>
           <div className="min-w-0">
@@ -105,7 +105,7 @@ function RecordingPlayerContent({ recording }: { recording: RawRecording }) {
       {recordingError ? (
         <p
           role="alert"
-          className="rounded-xl border bg-background/70 p-3 text-sm text-destructive"
+          className="border bg-background/70 p-3 text-sm text-destructive"
         >
           {recordingError}
         </p>
@@ -114,12 +114,12 @@ function RecordingPlayerContent({ recording }: { recording: RawRecording }) {
           controls
           playsInline
           src={recordingUrl}
-          className="aspect-video w-full rounded-2xl border bg-black shadow-sm"
+          className="aspect-video w-full border bg-black"
         >
           <track kind="captions" />
         </video>
       ) : (
-        <p className="rounded-xl border bg-background/70 p-3 text-sm text-muted-foreground">
+        <p className="border bg-background/70 p-3 text-sm text-muted-foreground">
           Loading saved recording...
         </p>
       )}
@@ -129,7 +129,7 @@ function RecordingPlayerContent({ recording }: { recording: RawRecording }) {
 
 function RecordingMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border bg-background/70 p-3">
+    <div className="border bg-background/70 p-3">
       <dt className="font-medium text-foreground">{label}</dt>
       <dd className="mt-1 break-words">{value}</dd>
     </div>
