@@ -229,7 +229,7 @@ export function MeetingNotesView({
                   <TableHead>Participants</TableHead>
                   <TableHead>Duration</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Action items</TableHead>
+                  <TableHead>Actions</TableHead>
                   <TableHead className="min-w-80 pr-4">Summary</TableHead>
                 </TableRow>
               </TableHeader>
@@ -286,7 +286,7 @@ function MeetingNotesEmptyState({
       <span className="flex size-8 items-center justify-center bg-muted text-muted-foreground [&_svg]:size-4">
         <FileTextIcon aria-hidden="true" />
       </span>
-      <p className="text-sm font-medium">{hasNotes ? "No matches" : "Empty"}</p>
+      {hasNotes && <p className="text-sm font-medium">No matches</p>}
       {!hasNotes && (
         <Button type="button" disabled={isCreatingNote} onClick={onCreateNote}>
           <PlusIcon data-icon="inline-start" />
@@ -321,23 +321,31 @@ function MeetingNoteCard({
         <StatusBadge state={note.state} />
       </div>
 
-      <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">
-        {note.summary?.overview ?? "None"}
-      </p>
+      {note.summary?.overview && (
+        <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">
+          {note.summary.overview}
+        </p>
+      )}
 
       <div className="flex flex-wrap gap-2">
-        <Badge variant="outline">
-          <UsersIcon aria-hidden="true" />
-          {formatParticipants(note.participants)}
-        </Badge>
-        <Badge variant="outline">
-          <Clock3Icon aria-hidden="true" />
-          {formatDuration(note.durationSeconds)}
-        </Badge>
-        <Badge variant="outline">
-          <CheckIcon aria-hidden="true" />
-          {note.summary?.actionItems.length ?? 0} actions
-        </Badge>
+        {note.participants.length > 0 && (
+          <Badge variant="outline">
+            <UsersIcon aria-hidden="true" />
+            {formatParticipants(note.participants)}
+          </Badge>
+        )}
+        {note.durationSeconds > 0 && (
+          <Badge variant="outline">
+            <Clock3Icon aria-hidden="true" />
+            {formatDuration(note.durationSeconds)}
+          </Badge>
+        )}
+        {(note.summary?.actionItems.length ?? 0) > 0 && (
+          <Badge variant="outline">
+            <CheckIcon aria-hidden="true" />
+            {note.summary?.actionItems.length} actions
+          </Badge>
+        )}
       </div>
     </button>
   )
@@ -373,15 +381,19 @@ function MeetingNoteRow({
       </TableCell>
       <TableCell>{formatCompactDate(note.createdAt)}</TableCell>
       <TableCell className="max-w-64 whitespace-normal">
-        {formatParticipants(note.participants)}
+        {note.participants.length > 0
+          ? formatParticipants(note.participants)
+          : ""}
       </TableCell>
-      <TableCell>{formatDuration(note.durationSeconds)}</TableCell>
+      <TableCell>
+        {note.durationSeconds > 0 ? formatDuration(note.durationSeconds) : ""}
+      </TableCell>
       <TableCell>
         <StatusBadge state={note.state} />
       </TableCell>
-      <TableCell>{note.summary?.actionItems.length ?? 0}</TableCell>
+      <TableCell>{note.summary?.actionItems.length || ""}</TableCell>
       <TableCell className="max-w-96 pr-4 whitespace-normal text-muted-foreground">
-        {note.summary?.overview ?? "None"}
+        {note.summary?.overview ?? ""}
       </TableCell>
     </TableRow>
   )
