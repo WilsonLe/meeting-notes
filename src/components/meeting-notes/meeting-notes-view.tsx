@@ -1,19 +1,24 @@
-import { useMemo, useState, type ReactNode } from "react"
+import { useMemo, useState, type KeyboardEvent } from "react"
 import {
   CalendarClockIcon,
   CheckIcon,
-  CircleDashedIcon,
   Clock3Icon,
   FileTextIcon,
+  FileVideoIcon,
   FilterIcon,
   PlusIcon,
   SearchIcon,
-  SparklesIcon,
   UsersIcon,
   XIcon,
 } from "lucide-react"
 
-import { RecordingPlayer } from "@/components/meeting-notes/recording-player"
+import {
+  formatCompactDate,
+  formatDateTime,
+  formatDuration,
+  formatParticipants,
+} from "@/components/meeting-notes/meeting-note-format"
+import { StatusBadge } from "@/components/meeting-notes/meeting-note-ui"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -30,6 +35,14 @@ import {
   DropdownMenuGroup,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty"
 import { Field, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import {
@@ -49,13 +62,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet"
-import {
   Table,
   TableBody,
   TableCell,
@@ -72,7 +78,6 @@ import {
   getMeetingNoteFilterOperators,
   isMeetingNoteFilterMultiOperator,
   MEETING_NOTE_FILTER_FIELDS,
-  MEETING_NOTE_STATE_LABELS,
   searchMeetingNotes,
   type MeetingNote,
   type MeetingNoteFilterClause,
@@ -83,21 +88,7 @@ import {
   type MeetingNoteFilterOperator,
   type MeetingNoteFilterScalar,
   type MeetingNoteFilterValue,
-  type MeetingNoteState,
 } from "@/lib/domain"
-import { cn } from "@/lib/utils"
-
-const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
-  dateStyle: "medium",
-  timeStyle: "short",
-})
-
-const compactDateFormatter = new Intl.DateTimeFormat(undefined, {
-  month: "short",
-  day: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
-})
 
 let filterIdCounter = 0
 
@@ -133,18 +124,17 @@ type MeetingNotesViewProps = {
   notes: MeetingNote[]
   isCreatingNote?: boolean
   onCreateNote: () => void
-  onResumeCapture: (note: MeetingNote) => void
+  onOpenNote: (note: MeetingNote) => void
 }
 
 export function MeetingNotesView({
   notes,
   isCreatingNote = false,
   onCreateNote,
-  onResumeCapture,
+  onOpenNote,
 }: MeetingNotesViewProps) {
   const [query, setQuery] = useState("")
   const [filterModel, setFilterModel] = useState(emptyFilterModel)
-  const [selectedNote, setSelectedNote] = useState<MeetingNote | null>(null)
 
   const filteredNotes = useMemo(() => {
     return searchMeetingNotes(
@@ -153,132 +143,279 @@ export function MeetingNotesView({
     )
   }, [filterModel, notes, query])
 
+  const stats = useMemo(() => {
+    return {
+      total: notes.length,
+      recordings: notes.filter((note) => Boolean(note.rawRecording)).length,
+      ready: notes.filter((note) => note.state === "ready").length,
+      drafts: notes.filter((note) => note.state === "draft").length,
+    }
+  }, [notes])
   const activeFilterCount = countActiveMeetingNoteFilterClauses(filterModel)
+  const hasNotes = notes.length > 0
+  const hasFilteredNotes = filteredNotes.length > 0
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">
-          Meeting Notes
-        </h1>
-        <Button
-          type="button"
-          disabled={isCreatingNote}
-          onClick={onCreateNote}
-          className="rounded-none"
-        >
-          <PlusIcon data-icon="inline-start" />
-          {isCreatingNote ? "Creating..." : "Create"}
-        </Button>
-      </div>
-
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <Field className="max-w-xl min-w-0 flex-1">
-          <FieldLabel htmlFor="meeting-notes-search" className="sr-only">
-            Search meeting notes
-          </FieldLabel>
-          <div className="relative">
-            <SearchIcon
-              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-              aria-hidden="true"
-            />
-            <Input
-              id="meeting-notes-search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search title, status, participants, summary..."
-              className="rounded-none pl-9"
-            />
+    <div className="flex flex-col gap-6">
+      <section className="rounded-3xl border bg-card/95 p-5 shadow-sm shadow-foreground/5 sm:p-6">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="max-w-3xl">
+            <p className="mb-2 text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
+              Local-first workspace
+            </p>
+            <h1 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
+              Meeting Notes
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
+              Capture, search, and review notes stored in this browser. No
+              server sync, no hidden background jobs.
+            </p>
           </div>
-        </Field>
-        <FilterBuilderPopover
-          model={filterModel}
-          activeFilterCount={activeFilterCount}
-          onChange={setFilterModel}
-        />
-      </div>
+          <Button
+            type="button"
+            disabled={isCreatingNote}
+            onClick={onCreateNote}
+            className="w-full sm:w-fit"
+          >
+            <PlusIcon data-icon="inline-start" />
+            {isCreatingNote ? "Creating..." : "Create"}
+          </Button>
+        </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="min-w-56">Title</TableHead>
-            <TableHead>Date / time</TableHead>
-            <TableHead>Participants</TableHead>
-            <TableHead>Duration</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Action items</TableHead>
-            <TableHead className="min-w-72">Summary</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filteredNotes.length > 0 ? (
-            filteredNotes.map((note) => (
-              <MeetingNoteRow
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <StatPill icon={FileTextIcon} label="Notes" value={stats.total} />
+          <StatPill icon={Clock3Icon} label="Drafts" value={stats.drafts} />
+          <StatPill
+            icon={CalendarClockIcon}
+            label="Ready"
+            value={stats.ready}
+          />
+          <StatPill
+            icon={FileVideoIcon}
+            label="Recordings"
+            value={stats.recordings}
+          />
+        </div>
+      </section>
+
+      <Card className="gap-4 p-4 shadow-sm shadow-foreground/5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <Field className="min-w-0 flex-1">
+            <FieldLabel htmlFor="meeting-notes-search" className="sr-only">
+              Search meeting notes
+            </FieldLabel>
+            <div className="relative">
+              <SearchIcon
+                className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden="true"
+              />
+              <Input
+                id="meeting-notes-search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search notes..."
+                className="h-10 pl-9"
+              />
+            </div>
+          </Field>
+          <FilterBuilderPopover
+            model={filterModel}
+            activeFilterCount={activeFilterCount}
+            onChange={setFilterModel}
+          />
+        </div>
+      </Card>
+
+      {!hasFilteredNotes ? (
+        <MeetingNotesEmptyState
+          hasNotes={hasNotes}
+          onCreateNote={onCreateNote}
+          isCreatingNote={isCreatingNote}
+        />
+      ) : (
+        <>
+          <div className="grid gap-3 md:hidden">
+            {filteredNotes.map((note) => (
+              <MeetingNoteCard
                 key={note.id}
                 note={note}
-                onSelect={() => setSelectedNote(note)}
-                onResumeCapture={() => onResumeCapture(note)}
+                onOpen={() => onOpenNote(note)}
               />
-            ))
-          ) : (
-            <TableRow>
-              <TableCell
-                colSpan={7}
-                className="h-32 text-center text-sm text-muted-foreground"
-              >
-                No meeting notes yet
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+            ))}
+          </div>
 
-      <MeetingNoteDetailSheet
-        note={selectedNote}
-        open={selectedNote !== null}
-        onOpenChange={(open) => {
-          if (!open) {
-            setSelectedNote(null)
-          }
-        }}
-      />
+          <Card className="hidden gap-0 overflow-hidden p-0 shadow-sm shadow-foreground/5 md:flex">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/40 hover:bg-muted/40">
+                  <TableHead className="min-w-72 px-4">Title</TableHead>
+                  <TableHead>Date / time</TableHead>
+                  <TableHead>Participants</TableHead>
+                  <TableHead>Duration</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Action items</TableHead>
+                  <TableHead className="min-w-80 pr-4">Summary</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredNotes.map((note) => (
+                  <MeetingNoteRow
+                    key={note.id}
+                    note={note}
+                    onOpen={() => onOpenNote(note)}
+                  />
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        </>
+      )}
     </div>
+  )
+}
+
+function StatPill({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof FileTextIcon
+  label: string
+  value: number
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-2xl border bg-background/70 px-4 py-3 text-sm shadow-sm shadow-foreground/5 [&_svg]:size-4 [&_svg]:text-muted-foreground">
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Icon aria-hidden="true" />
+        {label}
+      </div>
+      <span className="font-heading text-lg font-semibold text-foreground">
+        {value}
+      </span>
+    </div>
+  )
+}
+
+function MeetingNotesEmptyState({
+  hasNotes,
+  isCreatingNote,
+  onCreateNote,
+}: {
+  hasNotes: boolean
+  isCreatingNote: boolean
+  onCreateNote: () => void
+}) {
+  return (
+    <Empty className="min-h-80 border bg-card shadow-sm shadow-foreground/5">
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <FileTextIcon aria-hidden="true" />
+        </EmptyMedia>
+        <EmptyTitle>
+          {hasNotes ? "No notes match this view" : "Nothing here yet"}
+        </EmptyTitle>
+        <EmptyDescription>
+          {hasNotes
+            ? "Adjust search or filters to bring saved local notes back into view."
+            : "Create a local draft, capture recording, then return here to review it."}
+        </EmptyDescription>
+      </EmptyHeader>
+      {!hasNotes && (
+        <EmptyContent>
+          <Button
+            type="button"
+            disabled={isCreatingNote}
+            onClick={onCreateNote}
+          >
+            <PlusIcon data-icon="inline-start" />
+            {isCreatingNote ? "Creating..." : "Start note"}
+          </Button>
+        </EmptyContent>
+      )}
+    </Empty>
+  )
+}
+
+function MeetingNoteCard({
+  note,
+  onOpen,
+}: {
+  note: MeetingNote
+  onOpen: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="group flex w-full flex-col gap-3 rounded-2xl border bg-card p-4 text-left shadow-sm shadow-foreground/5 transition-colors hover:bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      aria-label={`Open details for ${note.title}`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-medium group-hover:text-primary">{note.title}</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {formatCompactDate(note.createdAt)}
+          </p>
+        </div>
+        <StatusBadge state={note.state} />
+      </div>
+
+      <p className="line-clamp-3 text-sm leading-6 text-muted-foreground">
+        {note.summary?.overview ?? "No generated summary yet"}
+      </p>
+
+      <div className="flex flex-wrap gap-2">
+        <Badge variant="outline">
+          <UsersIcon aria-hidden="true" />
+          {formatParticipants(note.participants)}
+        </Badge>
+        <Badge variant="outline">
+          <Clock3Icon aria-hidden="true" />
+          {formatDuration(note.durationSeconds)}
+        </Badge>
+        <Badge variant="outline">
+          <CheckIcon aria-hidden="true" />
+          {note.summary?.actionItems.length ?? 0} actions
+        </Badge>
+      </div>
+    </button>
   )
 }
 
 function MeetingNoteRow({
   note,
-  onSelect,
-  onResumeCapture,
+  onOpen,
 }: {
   note: MeetingNote
-  onSelect: () => void
-  onResumeCapture: () => void
+  onOpen: () => void
 }) {
-  const isDraft = note.state === "draft"
+  const handleKeyDown = (event: KeyboardEvent<HTMLTableRowElement>) => {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return
+    }
+
+    event.preventDefault()
+    onOpen()
+  }
 
   return (
-    <TableRow>
-      <TableCell className="max-w-72 whitespace-normal">
-        <Button
-          variant="link"
-          className="h-auto justify-start p-0 text-left font-medium whitespace-normal"
-          onClick={isDraft ? onResumeCapture : onSelect}
-          aria-label={
-            isDraft
-              ? `Resume capture for ${note.title}`
-              : `Open details for ${note.title}`
-          }
-        >
-          <span className="flex flex-col items-start gap-1">
-            <span>{note.title}</span>
-            {isDraft && (
-              <span className="text-xs font-normal text-muted-foreground">
-                Resume capture
-              </span>
-            )}
-          </span>
-        </Button>
+    <TableRow
+      role="link"
+      tabIndex={0}
+      className="cursor-pointer focus-visible:bg-muted focus-visible:outline-none"
+      onClick={onOpen}
+      onKeyDown={handleKeyDown}
+      aria-label={`Open details for ${note.title}`}
+    >
+      <TableCell className="max-w-80 px-4 whitespace-normal">
+        <div className="flex flex-col gap-1">
+          <span className="font-medium text-foreground">{note.title}</span>
+          {note.state === "draft" && (
+            <span className="text-xs text-muted-foreground">
+              Draft saved locally
+            </span>
+          )}
+        </div>
       </TableCell>
       <TableCell>{formatCompactDate(note.createdAt)}</TableCell>
       <TableCell className="max-w-64 whitespace-normal">
@@ -289,7 +426,7 @@ function MeetingNoteRow({
         <StatusBadge state={note.state} />
       </TableCell>
       <TableCell>{note.summary?.actionItems.length ?? 0}</TableCell>
-      <TableCell className="max-w-96 whitespace-normal text-muted-foreground">
+      <TableCell className="max-w-96 pr-4 whitespace-normal text-muted-foreground">
         {note.summary?.overview ?? "No generated summary yet"}
       </TableCell>
     </TableRow>
@@ -886,184 +1023,6 @@ function TokenValueInput({
       )}
     </div>
   )
-}
-
-function MeetingNoteDetailSheet({
-  note,
-  open,
-  onOpenChange,
-}: {
-  note: MeetingNote | null
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}) {
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
-        <SheetHeader>
-          <SheetTitle>{note?.title ?? "Meeting note details"}</SheetTitle>
-          <SheetDescription>
-            {note
-              ? `${formatDateTime(note.createdAt)} - ${formatDuration(note.durationSeconds)}`
-              : "Select a meeting note title to inspect details."}
-          </SheetDescription>
-        </SheetHeader>
-
-        {note && (
-          <div className="flex flex-col gap-4 px-4 pb-4">
-            <div className="flex flex-wrap gap-2">
-              <StatusBadge state={note.state} />
-              <Badge variant="outline">
-                <UsersIcon aria-hidden="true" />
-                {formatParticipants(note.participants)}
-              </Badge>
-              <Badge variant="outline">
-                <Clock3Icon aria-hidden="true" />
-                {formatDuration(note.durationSeconds)}
-              </Badge>
-            </div>
-
-            <RecordingPlayer note={note} />
-
-            <DetailSection title="Summary" icon={SparklesIcon}>
-              <p className="text-sm text-muted-foreground">
-                {note.summary?.overview ?? "No generated summary yet."}
-              </p>
-            </DetailSection>
-
-            <DetailSection title="Action Items" icon={CheckIcon}>
-              {note.summary?.actionItems.length ? (
-                <ul className="flex list-disc flex-col gap-2 pl-5 text-sm text-muted-foreground">
-                  {note.summary.actionItems.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  No action items recorded.
-                </p>
-              )}
-            </DetailSection>
-
-            <DetailSection title="Timeline" icon={CalendarClockIcon}>
-              <dl className="grid gap-3 text-sm sm:grid-cols-2">
-                <DetailTerm
-                  label="Created"
-                  value={formatDateTime(note.createdAt)}
-                />
-                <DetailTerm
-                  label="Updated"
-                  value={formatDateTime(note.updatedAt)}
-                />
-                <DetailTerm
-                  label="Transcript chunks"
-                  value={String(note.transcriptChunks.length)}
-                />
-                <DetailTerm
-                  label="Processing runs"
-                  value={String(note.processingRuns.length)}
-                />
-              </dl>
-            </DetailSection>
-          </div>
-        )}
-      </SheetContent>
-    </Sheet>
-  )
-}
-
-function DetailSection({
-  title,
-  icon: Icon,
-  children,
-}: {
-  title: string
-  icon: typeof FileTextIcon
-  children: ReactNode
-}) {
-  return (
-    <section className="rounded-xl border bg-card p-4">
-      <div className="mb-3 flex items-center gap-2 font-heading text-sm font-medium">
-        <Icon aria-hidden="true" />
-        {title}
-      </div>
-      {children}
-    </section>
-  )
-}
-
-function DetailTerm({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="font-medium">{value}</dd>
-    </div>
-  )
-}
-
-function StatusBadge({ state }: { state: MeetingNoteState }) {
-  return (
-    <Badge
-      className={cn(state === "ready" && "bg-primary text-primary-foreground")}
-      variant={getStatusVariant(state)}
-    >
-      {state === "processing" && <CircleDashedIcon aria-hidden="true" />}
-      {MEETING_NOTE_STATE_LABELS[state]}
-    </Badge>
-  )
-}
-
-function getStatusVariant(state: MeetingNoteState) {
-  if (state === "failed") {
-    return "destructive" as const
-  }
-
-  if (state === "ready") {
-    return "default" as const
-  }
-
-  if (state === "archived") {
-    return "outline" as const
-  }
-
-  return "secondary" as const
-}
-
-function formatParticipants(participants: string[]) {
-  if (participants.length === 0) {
-    return "No participants"
-  }
-
-  return participants.join(", ")
-}
-
-function formatDuration(durationSeconds: number) {
-  if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) {
-    return "0 min"
-  }
-
-  const hours = Math.floor(durationSeconds / 3600)
-  const minutes = Math.floor((durationSeconds % 3600) / 60)
-
-  if (hours > 0) {
-    return `${hours} hr ${minutes} min`
-  }
-
-  return `${minutes} min`
-}
-
-function formatCompactDate(value: string) {
-  const date = new Date(value)
-  return Number.isNaN(date.getTime())
-    ? "Unknown"
-    : compactDateFormatter.format(date)
-}
-
-function formatDateTime(value: string) {
-  const date = new Date(value)
-  return Number.isNaN(date.getTime())
-    ? "Unknown"
-    : dateTimeFormatter.format(date)
 }
 
 function toDatetimeLocalValue(value: MeetingNoteFilterValue) {
